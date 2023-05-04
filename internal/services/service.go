@@ -20,6 +20,7 @@ func NewServices(rep *repository.Repository) *Services {
 	return &Services{Repository: rep}
 }
 
+/*
 func (s *Services) GetUser(begin int, end int) (*[]models.All, error) {
 	var wg sync.WaitGroup
 	all := make([]models.All, end-begin+1)
@@ -38,27 +39,59 @@ func (s *Services) GetUser(begin int, end int) (*[]models.All, error) {
 	wg.Wait()
 	return &all, nil
 }
+*/
+// func (s *Services) GetUser(total int) (/*chan models.All, */error) {
+// 	var wg sync.WaitGroup
+// 	c:= make(chan models.All)
+// 	for i:=1; i<=total; i++ {
+// 		wg.Add(1)
+// 			go s.Repository.GetUserByChan(i, c)
+// 			wg.Done()
+// 	}
+// 	wg.Wait()
 
-func (s *Services) ExportToXLS(all *[]models.All) error {
+// 	s.ExportToXLS(total, c)
+
+// 	return nil
+// }
+
+func (s *Services) GetUser(begin int, end int) error {
+	var wg sync.WaitGroup
+	total := end - begin
+	all := make([]models.All, end-begin+1)
+	c := make(chan models.All, total) // буферизированный канал размером total
+	for i := 1; i <= total; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.Repository.GetUserByChan(i, c)
+		}()
+		all[i-begin] = <-c
+	}
+	wg.Wait()
+	close(c) // закрыть канал после того, как все горутины завершились
+
+	s.ExportToXLS(total, &all)
+	return nil
+}
+
+func (s *Services) ExportToXLS(total int, all *[]models.All) error {
 	f := excelize.NewFile()
 	sheetName := "Sheet1"
-
 	columns := []string{"id", "first_name", "last_name", "address", "phone_numb", "email", "pic"}
 	for i, colName := range columns {
-		cell := fmt.Sprintf("%s%d", string('A'+i), 1)
+		cell := fmt.Sprintf("%s%d", string(rune('A'+i)), 1)
 		f.SetCellValue(sheetName, cell, colName)
 	}
-	total := len(*all)
-	log.Println(total)
 	row := 2
-	for i := row; i <= total+1; i++ {
-		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), (*all)[i-2].Id)
-		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), (*all)[i-2].FirstName)
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), (*all)[i-2].LastName)
-		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), (*all)[i-2].Address)
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), (*all)[i-2].PhoneNumb)
-		f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), (*all)[i-2].Email)
-		f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), (*all)[i-2].Pic)
+	for i := 1; i <= total; i++ {
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), (*all)[row-2].Id)
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), (*all)[row-2].FirstName)
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), (*all)[row-2].LastName)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), (*all)[row-2].Address)
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), (*all)[row-2].PhoneNumb)
+		f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), (*all)[row-2].Email)
+		f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), (*all)[row-2].Pic)
 		row++
 	}
 	randomise := strconv.Itoa(rand.Intn(99999))
@@ -66,6 +99,5 @@ func (s *Services) ExportToXLS(all *[]models.All) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	return nil
 }

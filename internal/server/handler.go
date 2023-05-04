@@ -31,30 +31,31 @@ func (h *Handler) Init() {
 }
 
 func (h *Handler) GetUser(ctx *gin.Context) {
-
 	begin, err := strconv.Atoi(ctx.Query("begin"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
 	log.Println(begin)
+
 	end, err := strconv.Atoi(ctx.Query("end"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
 	log.Println(end)
-	all, err := h.Services.GetUser(begin, end)
+
+	//total := begin - end
+
+	/*c*/ err = h.Services.GetUser(begin, end)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-
-	err = h.Services.ExportToXLS(all)
+	/*err = h.Services.ExportToXLS(total, c)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
-	}
-
+	}*/
 	ctx.JSON(http.StatusOK, gin.H{"Status": "Done!"})
 }
