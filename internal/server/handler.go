@@ -45,17 +45,10 @@ func (h *Handler) GetUser(ctx *gin.Context) {
 	}
 	log.Println(end)
 
-	//total := begin - end
-
-	/*c*/ err = h.Services.GetUser(begin, end)
+	err = h.Services.GetUser(begin, end)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-	/*err = h.Services.ExportToXLS(total, c)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}*/
 	ctx.JSON(http.StatusOK, gin.H{"Status": "Done!"})
 }

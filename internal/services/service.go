@@ -20,46 +20,11 @@ func NewServices(rep *repository.Repository) *Services {
 	return &Services{Repository: rep}
 }
 
-/*
-func (s *Services) GetUser(begin int, end int) (*[]models.All, error) {
-	var wg sync.WaitGroup
-	all := make([]models.All, end-begin+1)
-	for i := begin; i <= end; i++ {
-		wg.Add(1)
-		go func(i int) (*[]models.All, error) {
-			res, err := s.Repository.GetUser(i)
-			if err != nil {
-				return nil, err
-			}
-			all[i-begin] = *res
-			wg.Done()
-			return &all, nil
-		}(i)
-	}
-	wg.Wait()
-	return &all, nil
-}
-*/
-// func (s *Services) GetUser(total int) (/*chan models.All, */error) {
-// 	var wg sync.WaitGroup
-// 	c:= make(chan models.All)
-// 	for i:=1; i<=total; i++ {
-// 		wg.Add(1)
-// 			go s.Repository.GetUserByChan(i, c)
-// 			wg.Done()
-// 	}
-// 	wg.Wait()
-
-// 	s.ExportToXLS(total, c)
-
-// 	return nil
-// }
-
 func (s *Services) GetUser(begin int, end int) error {
 	var wg sync.WaitGroup
 	total := end - begin
 	all := make([]models.All, end-begin+1)
-	c := make(chan models.All, total) // буферизированный канал размером total
+	c := make(chan models.All, total)
 	for i := 1; i <= total; i++ {
 		wg.Add(1)
 		go func() {
@@ -69,7 +34,7 @@ func (s *Services) GetUser(begin int, end int) error {
 		all[i-begin] = <-c
 	}
 	wg.Wait()
-	close(c) // закрыть канал после того, как все горутины завершились
+	close(c)
 
 	s.ExportToXLS(total, &all)
 	return nil
