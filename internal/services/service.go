@@ -20,22 +20,38 @@ func NewServices(rep *repository.Repository) *Services {
 	return &Services{Repository: rep}
 }
 
-func (s *Services) GetUser(begin int, end int) error {
-	var wg sync.WaitGroup
-	total := end - begin
-	all := make([]models.All, end-begin+1)
-	c := make(chan models.All, total)
-	for i := 1; i <= total; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s.Repository.GetUserByChan(i, c)
-		}()
-		all[i-begin] = <-c
-	}
-	wg.Wait()
-	close(c)
+// func (s *Services) GetUser() error {
+// 	var wg sync.WaitGroup
+// 	// := end - begin
+// 	c := make(chan []models.All)
+// 	wg.Add(1)
+// 	go	s.Repository.GetUserByChan(c)
+// 	all := <-c
+// 	wg.Wait()
+// 	close(c)
+// 	defer wg.Done()
 
+// 	total := len(all)
+// 	s.ExportToXLS(total, &all)
+// 	return nil
+// }
+
+func (s *Services) GetUser() error {
+	var wg sync.WaitGroup
+	c := make(chan []models.All)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.Repository.GetUserByChan(c)
+		close(c)
+	}()
+
+	var all []models.All
+	for records := range c {
+		all = append(all, records...)
+	}
+
+	total := len(all)
 	s.ExportToXLS(total, &all)
 	return nil
 }
