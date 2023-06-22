@@ -7,7 +7,6 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
-	"sync"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 )
@@ -20,39 +19,14 @@ func NewServices(rep *repository.Repository) *Services {
 	return &Services{Repository: rep}
 }
 
-// func (s *Services) GetUser() error {
-// 	var wg sync.WaitGroup
-// 	// := end - begin
-// 	c := make(chan []models.All)
-// 	wg.Add(1)
-// 	go	s.Repository.GetUserByChan(c)
-// 	all := <-c
-// 	wg.Wait()
-// 	close(c)
-// 	defer wg.Done()
-
-// 	total := len(all)
-// 	s.ExportToXLS(total, &all)
-// 	return nil
-// }
 
 func (s *Services) GetUser() error {
-	var wg sync.WaitGroup
 	c := make(chan []models.All)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		s.Repository.GetUserByChan(c)
-		close(c)
-	}()
-
-	var all []models.All
-	for records := range c {
-		all = append(all, records...)
+	go s.Repository.GetRecords(c)
+	all, ok := <-c
+	if ok {
+		s.ExportToXLS(len(all), &all)
 	}
-
-	total := len(all)
-	s.ExportToXLS(total, &all)
 	return nil
 }
 
