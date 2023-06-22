@@ -20,9 +20,9 @@ func NewServices(rep *repository.Repository) *Services {
 }
 
 
-func (s *Services) GetUser() error {
+func (s *Services) GetUser(begin int, end int) error {
 	c := make(chan []models.All)
-	go s.Repository.GetRecords(c)
+	go s.Repository.GetRecords(c, begin, end)
 	all, ok := <-c
 	if ok {
 		s.ExportToXLS(len(all), &all)

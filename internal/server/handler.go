@@ -4,6 +4,7 @@ import (
 	"channels/internal/repository"
 	"channels/internal/services"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,7 +30,14 @@ func (h *Handler) Init() {
 }
 
 func (h *Handler) GetUser(ctx *gin.Context) {
-	err := h.Services.GetUser()
+	begin, err := strconv.Atoi(ctx.Query("begin"))
+	end, err := strconv.Atoi(ctx.Query("end"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	err = h.Services.GetUser(begin, end)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
