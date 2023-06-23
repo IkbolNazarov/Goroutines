@@ -27,9 +27,11 @@ func (s *Services) GetUser(begin int, end int) error {
 
 	all := <-c
 	log.Println(len(all))
-	go s.ExportToXLS(len(all), &all)
+	f := excelize.NewFile()
+	
+	go s.ExportToXLS(f, len(all), &all)
 
-	f, err := s.ExportToXLS(0, &all) //Надо убрать
+	f, err := s.ExportToXLS(f, 0, &all)
 	if err != nil {
 		return err
 	}
@@ -39,8 +41,8 @@ func (s *Services) GetUser(begin int, end int) error {
 	return nil
 }
 
-func (s *Services) ExportToXLS(total int, all *[]models.All) (*excelize.File, error) {
-	f := excelize.NewFile()
+func (s *Services) ExportToXLS(f *excelize.File, total int, all *[]models.All) (*excelize.File, error) {
+	
 	sheetName := "Sheet1"
 	columns := []string{"id", "first_name", "last_name", "address", "phone_numb", "email", "pic"}
 	for i, colName := range columns {
