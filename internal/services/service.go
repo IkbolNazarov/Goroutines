@@ -19,18 +19,27 @@ func NewServices(rep *repository.Repository) *Services {
 	return &Services{Repository: rep}
 }
 
-
 func (s *Services) GetUser(begin int, end int) error {
 	c := make(chan []models.All)
 	go s.Repository.GetRecords(c, begin, end)
-	all, ok := <-c
-	if ok {
-		s.ExportToXLS(len(all), &all)
+
+	log.Println("1111")
+
+	all := <-c
+	log.Println(len(all))
+	go s.ExportToXLS(len(all), &all)
+
+	f, err := s.ExportToXLS(0, &all) //Надо убрать
+	if err != nil {
+		return err
 	}
+	
+	close(c)
+	s.SaveXLS(f)
 	return nil
 }
 
-func (s *Services) ExportToXLS(total int, all *[]models.All) error {
+func (s *Services) ExportToXLS(total int, all *[]models.All) (*excelize.File, error) {
 	f := excelize.NewFile()
 	sheetName := "Sheet1"
 	columns := []string{"id", "first_name", "last_name", "address", "phone_numb", "email", "pic"}
@@ -49,10 +58,14 @@ func (s *Services) ExportToXLS(total int, all *[]models.All) error {
 		f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), (*all)[row-2].Pic)
 		row++
 	}
+	return f, nil
+}
+
+func (s *Services) SaveXLS(f *excelize.File) error {
 	randomise := strconv.Itoa(rand.Intn(99999))
 	err := f.SaveAs(randomise + "output.xlsx")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	return nil
 }
