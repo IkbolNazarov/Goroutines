@@ -23,12 +23,10 @@ func (s *Services) GetUser(begin int, end int) error {
 	c := make(chan []models.All)
 	go s.Repository.GetRecords(c, begin, end)
 
-	log.Println("1111")
-
 	all := <-c
 	log.Println(len(all))
 	f := excelize.NewFile()
-	
+
 	go s.ExportToXLS(f, len(all), &all)
 
 	f, err := s.ExportToXLS(f, 0, &all)
