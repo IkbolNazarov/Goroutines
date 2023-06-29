@@ -45,7 +45,7 @@ func (r *Repository) GetRecords(begin int, end int) error {
 		Joins("JOIN info ON name.id = info.id").
 		Joins("JOIN pic ON name.id = pic.id").
 		Where("name.id BETWEEN ? AND ?", begin, end).FindInBatches(&results, batchSize, func(tx *gorm.DB, batch int) error {
-			for _, result := range results{
+			for i:=1; i<(end-begin)/batchSize; i++{
 				fmt.Println(tx.RowsAffected)
 				fmt.Println(batch)
 				c<- results
