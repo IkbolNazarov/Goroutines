@@ -1,14 +1,8 @@
 package services
 
 import (
-	"channels/internal/models"
 	"channels/internal/repository"
-	"fmt"
 	"log"
-	"math/rand"
-	"strconv"
-
-	"github.com/360EntSecGroup-Skylar/excelize"
 )
 
 type Services struct {
@@ -20,52 +14,8 @@ func NewServices(rep *repository.Repository) *Services {
 }
 
 func (s *Services) GetUser(begin int, end int) error {
-	c := make(chan []models.All)
-	go s.Repository.GetRecords(c, begin, end)
+	go s.Repository.GetRecords(begin, end)
 
-	all := <-c
-	log.Println(len(all))
-	f := excelize.NewFile()
-
-	go s.ExportToXLS(f, len(all), &all)
-
-	f, err := s.ExportToXLS(f, 0, &all)
-	if err != nil {
-		return err
-	}
-	
-	close(c)
-	s.SaveXLS(f)
-	return nil
-}
-
-func (s *Services) ExportToXLS(f *excelize.File, total int, all *[]models.All) (*excelize.File, error) {
-	
-	sheetName := "Sheet1"
-	columns := []string{"id", "first_name", "last_name", "address", "phone_numb", "email", "pic"}
-	for i, colName := range columns {
-		cell := fmt.Sprintf("%s%d", string(rune('A'+i)), 1)
-		f.SetCellValue(sheetName, cell, colName)
-	}
-	row := 2
-	for i := 1; i <= total; i++ {
-		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), (*all)[row-2].Id)
-		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), (*all)[row-2].FirstName)
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), (*all)[row-2].LastName)
-		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), (*all)[row-2].Address)
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), (*all)[row-2].PhoneNumb)
-		f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), (*all)[row-2].Email)
-		f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), (*all)[row-2].Pic)
-		row++
-	}
-	return f, nil
-}
-
-func (s *Services) SaveXLS(f *excelize.File) error {
-	randomise := strconv.Itoa(rand.Intn(99999))
-	err := f.SaveAs(randomise + "output.xlsx")
-	if err != nil {
-		return err
-	}
+	log.Println("Done")
 	return nil
 }
