@@ -4,6 +4,7 @@ import (
 	"channels/internal/db"
 	"channels/internal/models"
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 
@@ -35,57 +36,52 @@ func NewRepository(conn *gorm.DB) *Repository {
 // 	return nil
 // }
 
-
 func (r *Repository) GetRecords(begin int, end int) error {
-	var results []models.All
-	batchSize:=20
-	c := make(chan []models.All)
-	result  := db.DataB.Table("name").
-		Select("name.first_name, name.last_name, info.address, info.phone_numb, info.email, pic.pic").
-		Joins("JOIN info ON name.id = info.id").
-		Joins("JOIN pic ON name.id = pic.id").
-		Where("name.id BETWEEN ? AND ?", begin, end).FindInBatches(&results, batchSize, func(tx *gorm.DB, batch int) error {
-			for i:=1; i<(end-begin)/batchSize; i++{
-				fmt.Println(tx.RowsAffected)
-				fmt.Println(batch)
-				c<- results
-				go r.ExportToXLS(batchSize, c)
+	f := excelize.NewFile()
+	batchSize := 100
+	c := make(chan []models.Name)
+	go func() {
+		defer close(c)
+		for offset := begin; offset <= end; offset += batchSize {
+			var results []models.Name
+			result := db.DataB.Offset(offset).Limit(batchSize).Find(&results)
+			if result.Error != nil {
+				fmt.Println(result.Error)
+				return
 			}
-			return nil 
-		})
-	if result.Error != nil {
-		return result.Error
-	}
+			c <- results
+		}
+	}()
+	r.ExportToXLS(end-begin+1, c, f)
+	r.SaveXLS(f)
 	return nil
 }
 
-func (r *Repository) ExportToXLS(total int, c chan []models.All) error {
-	f := excelize.NewFile()
-	all := <-c
-	close(c)
+func (r *Repository) ExportToXLS(total int, c chan []models.Name, f *excelize.File) {
 	sheetName := "Sheet1"
-	columns := []string{"id", "first_name", "last_name", "address", "phone_numb", "email", "pic"}
+	columns := []string{"id", "first_name", "last_name"}
 	for i, colName := range columns {
 		cell := fmt.Sprintf("%s%d", string(rune('A'+i)), 1)
 		f.SetCellValue(sheetName, cell, colName)
 	}
 	row := 2
-	for i := 1; i <= total; i++ {
-		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), (all)[row-2].Id)
-		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), (all)[row-2].FirstName)
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), (all)[row-2].LastName)
-		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), (all)[row-2].Address)
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), (all)[row-2].PhoneNumb)
-		f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), (all)[row-2].Email)
-		f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), (all)[row-2].Pic)
-		row++
+	for results := range c {
+		for _, result := range results {
+			f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), result.Id)
+			f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), result.FirstName)
+			f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), result.LastName)
+			row++
+		}
 	}
+}
 
-	randomise := strconv.Itoa(rand.Intn(99999))
-	err := f.SaveAs(randomise + "output.xlsx")
+func (r *Repository) SaveXLS(f *excelize.File) error {
+	randomize := strconv.Itoa(rand.Intn(99999))
+	err := f.SaveAs(randomize + "output.xlsx")
+	log.Println("output ok")
 	if err != nil {
+		fmt.Println("Ошибка при сохранении файла:", err)
 		return err
 	}
 	return nil
 }
-

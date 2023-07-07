@@ -2,6 +2,7 @@ package services
 
 import (
 	"channels/internal/repository"
+	"errors"
 	"log"
 )
 
@@ -14,8 +15,10 @@ func NewServices(rep *repository.Repository) *Services {
 }
 
 func (s *Services) GetUser(begin int, end int) error {
-	go s.Repository.GetRecords(begin, end)
-
+	err:= s.Repository.GetRecords(begin, end)
+	if err!= nil {
+		return errors.New("Error in repository")
+	}
 	log.Println("Done")
 	return nil
 }

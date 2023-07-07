@@ -22,13 +22,3 @@ type Name struct {
 	FirstName string `gorm: "column:first_name"`
 	LastName  string `gorm:"column:last_name"`
 }
-
-type All struct {
-	Id        int    `gorm: "column:id"`
-	FirstName string `gorm: "column:first_name"`
-	LastName  string `gorm:"column:last_name"`
-	Address   string `gorm:"column:address"`
-	PhoneNumb string `gorm:"column:phone_numb"`
-	Email     string `gorm:column:email`
-	Pic       string `gorm:column:pic`
-}
